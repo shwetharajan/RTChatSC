@@ -1,0 +1,249 @@
+﻿<!DOCTYPE html>
+<html lang="en-us">
+<head>
+	<title> Real Time Chat </title>
+	<meta charset="UTF-8">
+	<script src="https://www.gstatic.com/firebasejs/4.2.0/firebase.js"></script>
+	<link rel="stylesheet" href="stylestest.css">
+	<link rel="icon" href="data:;base64,iVBORw0KGgo=">
+</head>
+
+<body>
+
+<!-- LOGIN SCREEN -->
+
+<div id="loginform">
+	<div id ="logindetails">
+		<h2> CHAT LOGIN SCREEN </h2><br>
+		<table>
+		<tr>
+		<td>
+		<label><b>E-Mail:</b></label>
+			<input id="emaillog" type="text"  Placeholder="Please Enter Email ID" ><br>
+		</td></tr>
+		<tr>
+		<td>
+		<label><b>Password:</b></label>
+			<input id="logpass" type="password" Placeholder="Please Enter Password" ><br>
+		</td>
+		<td>
+			<div style="color:red;" id="error" > </div>
+		</td>
+		</tr>
+		<tr>
+		<td>
+		<button id="oldlogin" >LOGIN</button>
+		<button id="newlogin">REGISTER</button><br>
+		</td>
+		</tr>
+		</table>
+	</div>
+</div>
+
+<!-- CHAT SCREEN -->
+	
+<div id="outerframe">
+	<div id="chatbox"></div>
+	<form name="message" action="" >
+			<div style="color:white;font-size:25px;margin-left:40px;" id="username" ></div><br>
+			<input id="text" type="text" Placeholder="Post Your Message" ><br>
+			<input type="button" id = "Post1" value="Send"/> 
+			<button id="Logout">Logout</button>		
+
+	</form>
+ </div>
+
+
+<!-- FIREBASE INTIALIZE -->
+
+<script>
+  // Initialize Firebase
+  var config = {
+    apiKey: "AIzaSyDwHdtfWLpJ71NoS1rVFNQbjiEYxWoDdPI",
+    authDomain: "my-rt-chat-74387.firebaseapp.com",
+    databaseURL: "https://my-rt-chat-74387.firebaseio.com",
+    projectId: "my-rt-chat-74387",
+    storageBucket: "",
+    messagingSenderId: "162570136727"
+  };
+  firebase.initializeApp(config);
+</script>
+
+
+<!-- LOGIC FLOW -->
+<script>                                                                                                                                                                                                                                                                                                                                                           
+	var myFirebase= firebase.database().ref();
+	
+	
+<!--DISPLAY LOGIN SCREEN -->
+
+	var emailf    = document.querySelector('#emaillog');
+	var passwordf = document.querySelector('#logpass');
+	var logButton = document.querySelector('#oldlogin');
+	var regButton = document.querySelector('#newlogin');
+
+	var loginscreen = document.getElementById('loginform');
+	var chatroom    = document.getElementById('outerframe');
+
+<!-- HIDES CHAT SCREEN -->
+	var userName = "";
+	chatroom.style.display = 'none';
+	
+	
+
+<!--LISTEN TO THE LOGIN BUTTON -->
+	logButton.addEventListener("click",function(){
+						document.getElementById("error").innerHTML="";
+						var email = emailf.value;
+						var password =passwordf.value;
+
+							firebase.auth().signInWithEmailAndPassword(email,password)
+								.then(function(firebaseUser) {
+								       		// Success 
+											chatlogup();
+											userName = email.split('@',1);	
+											document.getElementById("username").innerHTML="Hello: "+userName;
+									 })
+								.catch(function(error) {
+									var errorMessage = error.message;
+									document.getElementById("error").innerHTML=errorMessage;
+								});					
+						      });
+						
+
+
+<!--LISTEN TO THE REGISTER BUTTON-->
+	regButton.addEventListener("click",function(){	
+						document.getElementById("error").innerHTML="";
+						var email = emailf.value;
+						var password =passwordf.value;
+						firebase.auth().createUserWithEmailAndPassword(email,password)
+								.then(function(firebaseUser) {
+								       		// Success 
+											chatlogup();
+											userName = email.split('@',1);	
+											document.getElementById("username").innerHTML="Hello: "+userName;
+
+									 })
+								.catch(function(error) {
+									var errorMessage = error.message;
+									document.getElementById("error").innerHTML=errorMessage;
+						       });
+						});
+
+
+<!-- CHAT SCROLLING -->
+window.setInterval(function() {
+ var elem = document.getElementById('chatbox');
+ elem.scrollTop = elem.scrollHeight;
+}, 2000);
+
+
+document.getElementById("text")
+   .addEventListener("keyup", function(event) {
+   event.preventDefault();
+   if (event.keyCode == 13) {
+       document.getElementById("Post1").click();
+   }
+});
+
+
+<!-- ENTER CHAT SCREEN FOR AUTHENTICATED USERS -->
+ var chatlogup = function(){ 
+ 				var user = null;
+				user = firebase.auth().currentUser;
+				if ( user != null){		
+					var uname = user.email;
+				
+					var usernameInput = uname.split('@',1);	
+					chatroom.style.display = 'block';
+					loginscreen.style.display = 'none';
+					
+					startListening();
+						};
+			    };	
+
+
+
+<!--RETRIEVE DATA AND DISPLAY IN CHATBOX-->
+
+	var startListening = function(){
+					myFirebase.limitToLast(7).on('child_added',function(snapshot){
+						var msg = snapshot.val();
+						var msgUsernameElement = document.createElement("b");
+						msgUsernameElement.textContent = msg.username;
+						msgUsernameElement.style.cssText='color:blue;font-size:20px;';
+
+						var msgsuffixElement = document.createElement("b");
+						msgsuffixElement.textContent = msg.suffix;
+						msgsuffixElement.style.cssText='color:blue;font-size:20px;';
+
+						var msgTextElement = document.createElement("p");
+						msgTextElement.textContent = msg.text;
+						msgTextElement.style.cssText='font-size:15px;';
+				
+						var msgElement = document.createElement("div");
+						msgElement.appendChild(msgUsernameElement);
+						msgElement.appendChild(msgsuffixElement);
+						msgElement.appendChild(msgTextElement);
+						document.getElementById("chatbox").appendChild(msgElement);
+							     });
+					};
+
+
+
+<!-- POST MESSAGES -->
+
+					var textInput = document.querySelector('#text');
+					var postButton = document.querySelector('#Post1');
+
+					textInput.addEventListener('keydown',function(e){
+						if(e.keyIdentifier=='U+000A'||e.keyIdentifier=='Enter'||e.keyCode==13){
+						if(e.target.nodeName=='INPUT'&&e.target.type=='text'){
+						e.preventDefault();
+						return false;
+					}
+					}
+					},true);
+					postButton.addEventListener("click",function(){	
+										user = firebase.auth().currentUser;
+										uname = user.email;
+										usernameInput = uname.split('@',1);	
+
+
+										var msgUser = usernameInput;
+										var msgText = textInput.value;
+										myFirebase.push({username:msgUser,suffix:" says: ",text:msgText});
+										textInput.value = "";
+										});
+
+	
+
+
+
+
+<!--LOGOUT BUTTON-->
+	var logoutButton = document.querySelector('#Logout');
+
+
+	logoutButton.addEventListener("click",function() {
+						firebase.auth().signOut().then(function() {
+						  			// Sign-out successful.
+						  				chatroom.style.display = 'none';
+						  				loginscreen.style.display = 'block';
+										
+											   })
+									  .catch(function(error) {
+												var errorMessage = error.message;
+												console.log(errorMessage);
+												
+												 });
+											});
+
+
+					
+
+</script>
+
+</body>
+</html>
